@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.contrib.auth.models import User
 
 User = get_user_model()
 
@@ -47,6 +48,7 @@ class Post(models.Model):
     )
 
     class Meta:
+        ordering = ['pub_date']
         default_related_name = 'posts'
 
     def __str__(self):
@@ -72,6 +74,7 @@ class Comment(models.Model):
     )
 
     class Meta:
+        ordering = ['-created']
         default_related_name = 'comments'
 
     def __str__(self):
@@ -93,7 +96,16 @@ class Follow(models.Model):
     )
 
     class Meta:
-        unique_together = ['user', 'following']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['following', 'user'],
+                name='unique_following'
+            ),
+            models.CheckConstraint(
+                check=~models.Q(user=models.F('following')),
+                name='prevent_self_follow',
+            )
+        ]
 
     def __str__(self):
-        return f'{self.user} follows {self.following}'
+        return f'{self.user.username} follows {self.following.username}'
